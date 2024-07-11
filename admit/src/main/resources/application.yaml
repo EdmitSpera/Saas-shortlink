@@ -1,0 +1,18 @@
+server:
+  port: 8002
+
+spring:
+  datasource:
+    username: root
+    password: LiBin238238;
+    url: jdbc:mysql://127.0.0.1:3306/link?characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&serverTimezone=GMT%2B8
+
+#    Driver是数据库的驱动 不同的数据库驱动存在差异的 有自己的驱动
+    driver-class-name: com.mysql.cj.jdbc.Driver
+#    数据库的连接池
+    hikari:
+      connection-test-query: select 1
+      connection-timeout: 20000
+      idle-timeout: 300000
+      maximum-pool-size: 5
+      minimum-idle: 5
