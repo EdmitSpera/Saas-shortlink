@@ -1,8 +1,10 @@
-package com.nageoffer.shortlink.admin.service.impl;
+package com.nageoffer.shortlink.admin.service.Impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.nageoffer.shortlink.admin.common.convention.exception.ClientException;
+import com.nageoffer.shortlink.admin.common.enums.UserErrorCodeEnum;
 import com.nageoffer.shortlink.admin.dao.entity.UserDo;
 import com.nageoffer.shortlink.admin.dao.mapper.UserMapper;
 import com.nageoffer.shortlink.admin.dto.resp.UserRespDTO;
@@ -20,6 +22,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDo> implements 
         LambdaQueryWrapper<UserDo> queryWrapper = Wrappers.lambdaQuery(UserDo.class)
                 .eq(UserDo::getUsername, username);
         UserDo userDo = baseMapper.selectOne(queryWrapper);
+
+        // 如果数据库中没有找到该对象
+        if(userDo == null){
+            throw new ClientException(UserErrorCodeEnum.USER_NULL);
+        }
+
         UserRespDTO result = new UserRespDTO();
         BeanUtils.copyProperties(userDo, result);
         return result;
