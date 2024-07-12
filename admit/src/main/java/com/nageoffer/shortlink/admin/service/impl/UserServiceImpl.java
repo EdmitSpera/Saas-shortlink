@@ -67,7 +67,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDo> implements 
             throw new ClientException(UserErrorCodeEnum.USER_NAME_EXIST);
         }
         // 获取分布式锁
-        RLock lock = redissonClient.getLock(LOCK_USER_REGISTER_KEY);
+        RLock lock = redissonClient.getLock(LOCK_USER_REGISTER_KEY + requestParam.getUsername());
 
         try {
             if (lock.tryLock()) {
