@@ -1,18 +1,18 @@
-package com.nageoffer.shortlink.admin.dao.entity;
+package com.nageoffer.shortlink.admin.dto.req;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.nageoffer.shortlink.admin.common.serialize.PhoneDesensitizationSerializer;
 import lombok.Data;
 
 import java.util.Date;
 
 /**
- * 用户持久层实体
+ * 用户注册实体
  */
-@TableName("t_user")
 @Data
-public class UserDo {
+public class UserRegisterReqDTO {
     /**
      * id
      */
@@ -50,19 +50,15 @@ public class UserDo {
     /**
      * 创建时间
      */
-    @TableField(fill = FieldFill.INSERT)
     private Date createTime;
 
     /**
      * 修改时间
      */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
     private Date updateTime;
 
     /**
      * 删除标识
      */
-    @TableField(fill = FieldFill.INSERT)
     private Integer delFlag;
-
 }

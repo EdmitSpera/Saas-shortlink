@@ -5,7 +5,9 @@ import com.nageoffer.shortlink.admin.common.convention.errorcode.IErrorCode;
 // 用户系统二级宏观错误
 public enum UserErrorCodeEnum implements IErrorCode {
 
-    USER_NULL("B000200","用户记录不存在");
+    USER_NULL("B000200","用户记录不存在"),
+    USER_NAME_EXIST("B000201","用户名不存在"),
+    USER_EXIST("B000202","用户记录已存在");
 
     private final String code;
 
