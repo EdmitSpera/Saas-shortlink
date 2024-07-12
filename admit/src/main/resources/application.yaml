@@ -1,15 +1,23 @@
 server:
   port: 8002
 
+#spring:
+#  datasource:
+#    username: root
+#    password: LiBin238238;
+#    url: jdbc:mysql://127.0.0.1:3306/link?characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&serverTimezone=GMT%2B8
+#
+##    Driver是数据库的驱动 不同的数据库驱动存在差异的 有自己的驱动
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#    数据库的连接池
+
+# 使用ShardingSphere的数据源
 spring:
   datasource:
-    username: root
-    password: LiBin238238;
-    url: jdbc:mysql://127.0.0.1:3306/link?characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&serverTimezone=GMT%2B8
-
-#    Driver是数据库的驱动 不同的数据库驱动存在差异的 有自己的驱动
-    driver-class-name: com.mysql.cj.jdbc.Driver
-#    数据库的连接池
+    # ShardingSphere 对 Driver 自定义，实现分库分表等隐藏逻辑
+    driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
+    # ShardingSphere 配置文件路径
+    url: jdbc:shardingsphere:classpath:shardingsphere-config.yaml
     hikari:
       connection-test-query: select 1
       connection-timeout: 20000

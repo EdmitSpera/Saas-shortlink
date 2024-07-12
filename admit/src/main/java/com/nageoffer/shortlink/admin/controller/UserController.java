@@ -46,7 +46,7 @@ public class UserController {
      */
     @GetMapping("/api/shortlink/v1/has-username/user/{username}")
     public Result<Boolean> hasUserName(@PathVariable("username") String username){
-        return Results.success(userService.hasUsername(username));
+        return Results.success(!userService.hasUsername(username));
     }
 
     @PostMapping("/api/shortlink/v1/user")
