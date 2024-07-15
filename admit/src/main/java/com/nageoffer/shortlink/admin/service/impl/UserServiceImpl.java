@@ -66,12 +66,22 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDo> implements 
         return result;
     }
 
+    /**
+     * 检查用户名是否存在
+     *
+     * @param username 用户名
+     * @return 是否存在
+     */
     @Override
     public Boolean hasUsername(String username) {
         return userRegisterCachePenetrationBloomFilter.contains(username);
     }
 
-
+    /**
+     * 用户注册方法
+     *
+     * @param requestParam 注册请求参数
+     */
     @Override
     public void Register(UserRegisterReqDTO requestParam) {
         // 如果用户名存在 抛出异常
@@ -100,6 +110,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDo> implements 
         }
     }
 
+    /**
+     * 更新用户信息
+     *
+     * @param requestParam 更新请求参数
+     */
     @Override
     public void update(UserUpdateReqDTO requestParam) {
         // TODO 如果用户未登录，抛出异常进行拦截
@@ -109,11 +124,17 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDo> implements 
         baseMapper.update(BeanUtil.toBean(requestParam, UserDo.class), updateWrapper);
     }
 
+    /**
+     * 用户登录方法
+     *
+     * @param requestParam 登录请求参数
+     * @return 登录响应结果
+     */
     @Override
     public UserLoginRespDTO login(UserLoginReqDTO requestParam) {
-        //  如果用户已经登录，则抛出用户登录的异常，捕获信息
+        // 如果用户已经登录，则抛出用户登录的异常，捕获信息
         String requestUsernameKey = "login_" + requestParam.getUsername();
-        if(redissonClient.getKeys().countExists(requestUsernameKey) >= 1){
+        if (redissonClient.getKeys().countExists(requestUsernameKey) >= 1) {
             throw new ClientException(USER_LOGIN_ALREADY);
         }
 
@@ -126,7 +147,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDo> implements 
         UserDo userDo = baseMapper.selectOne(queryWrapper);
 
         // 根据用户名和密码验证了用户成功后，生成token
-        if(userDo == null){
+        if (userDo == null) {
             throw new ClientException(USER_NULL);
         }
 
@@ -140,8 +161,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDo> implements 
         return new UserLoginRespDTO(token.toString());
     }
 
+    /**
+     * 检查用户登录状态
+     *
+     * @param username 用户名
+     * @param token    用户令牌
+     * @return 登录状态
+     */
     @Override
     public Boolean checkLoginStatus(String username, String token) {
-        return stringRedisTemplate.opsForHash().get("login_"+ username,token) != null;
+        return stringRedisTemplate.opsForHash().get("login_" + username, token) != null;
     }
 }

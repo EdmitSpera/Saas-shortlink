@@ -26,6 +26,9 @@ public class UserController {
 
     /**
      * 根据用户名查询用户信息（脱敏）
+     *
+     * @param username 用户名
+     * @return 用户信息结果
      */
     @GetMapping("/api/shortlink/v1/user/{username}")
     public Result<UserRespDTO> getUserByUsername(@PathVariable("username") String username) {
@@ -33,9 +36,10 @@ public class UserController {
     }
 
     /**
-     * 根据用户名查询为脱敏的用户信息
-     * @param username
-     * @return
+     * 根据用户名查询未脱敏的用户信息
+     *
+     * @param username 用户名
+     * @return 用户实际信息结果
      */
     @GetMapping("/api/shortlink/v1/actual/user/{username}")
     public Result<UserActualRespDTO> getUserActualByUsername(@PathVariable("username") String username) {
@@ -44,33 +48,59 @@ public class UserController {
 
     /**
      * 根据用户名查询是否存在
-     * @param username
-     * @return
+     *
+     * @param username 用户名
+     * @return 用户名存在与否结果
      */
     @GetMapping("/api/shortlink/v1/has-username/user/{username}")
-    public Result<Boolean> hasUserName(@PathVariable("username") String username){
+    public Result<Boolean> hasUserName(@PathVariable("username") String username) {
         return Results.success(!userService.hasUsername(username));
     }
 
+    /**
+     * 用户注册接口
+     *
+     * @param requestParam 注册请求参数
+     * @return 空结果
+     */
     @PostMapping("/api/shortlink/v1/user")
-    public Result<Void> register(@RequestBody UserRegisterReqDTO requestParam){
+    public Result<Void> register(@RequestBody UserRegisterReqDTO requestParam) {
         userService.Register(requestParam);
         return Results.success();
     }
 
+    /**
+     * 用户信息更新接口
+     *
+     * @param userUpdateReqDTO 更新请求参数
+     * @return 空结果
+     */
     @PutMapping("/api/shortlink/v1/user")
-    public Result<Void> update(@RequestBody UserUpdateReqDTO userUpdateReqDTO){
+    public Result<Void> update(@RequestBody UserUpdateReqDTO userUpdateReqDTO) {
         userService.update(userUpdateReqDTO);
         return Results.success();
     }
 
-    @PostMapping ("/api/shortlink/v1/user/login")
-    public Result<UserLoginRespDTO> login(@RequestBody UserLoginReqDTO requestParam){
+    /**
+     * 用户登录接口
+     *
+     * @param requestParam 登录请求参数
+     * @return 登录响应结果
+     */
+    @PostMapping("/api/shortlink/v1/user/login")
+    public Result<UserLoginRespDTO> login(@RequestBody UserLoginReqDTO requestParam) {
         return Results.success(userService.login(requestParam));
     }
 
+    /**
+     * 检查用户登录状态
+     *
+     * @param username 用户名
+     * @param token    用户令牌
+     * @return 登录状态结果
+     */
     @GetMapping("/api/shortlink/v1/user/check-login")
-    public Result<Boolean> checkLogin(@RequestParam("username") String username,@RequestParam("token") String token){
+    public Result<Boolean> checkLogin(@RequestParam("username") String username, @RequestParam("token") String token) {
         return Results.success(userService.checkLoginStatus(username, token));
     }
 
