@@ -10,7 +10,7 @@ public enum UserErrorCodeEnum implements IErrorCode {
     USER_SAVE_ERROR("B000202","用户记录已存在"),
     USER_LOGIN_ALREADY("B000203","用户已登录"),
     USER_LOGIN_NULL("B000204","用户未登录"),
-    User_LOGIN_TIMEOUT("B000205","用户登录过期");
+    USER_LOGIN_TIMEOUT("B000205","用户登录过期");
 
 
     private final String code;

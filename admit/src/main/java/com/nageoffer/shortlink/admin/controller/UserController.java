@@ -104,4 +104,10 @@ public class UserController {
         return Results.success(userService.checkLoginStatus(username, token));
     }
 
+    @DeleteMapping("/api/shortlink/v1/user")
+    public Result<Boolean> logout(@RequestParam("username") String username, @RequestParam("token") String token) {
+        Boolean isLogout = userService.logout(username, token);
+        return Results.success(isLogout);
+    }
+
 }

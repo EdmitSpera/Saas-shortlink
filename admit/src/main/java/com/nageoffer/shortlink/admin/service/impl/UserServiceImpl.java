@@ -172,4 +172,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDo> implements 
     public Boolean checkLoginStatus(String username, String token) {
         return stringRedisTemplate.opsForHash().get("login_" + username, token) != null;
     }
+
+    @Override
+    public Boolean logout(String username, String token) {
+        Boolean loginStatus = checkLoginStatus(username, token);
+        if (!loginStatus) {
+            throw new ClientException(USER_LOGIN_NULL);
+        }
+        stringRedisTemplate.opsForHash().delete("login_" + username, token);
+        return true;
+    }
 }
