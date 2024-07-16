@@ -47,9 +47,6 @@ public class UserTransmitFilter implements Filter {
                 // 如果已经登录 将用户信息加入用户上下文中
                 UserInfoDTO userInfoDTO = JSON.parseObject(userInfoJsonStr.toString(), UserInfoDTO.class);
                 UserContext.setUser(userInfoDTO);
-            }else {
-                // TODO 网关实现跳转登录
-                // 如果未登录，跳转用户登录功能
             }
         }
         try {
