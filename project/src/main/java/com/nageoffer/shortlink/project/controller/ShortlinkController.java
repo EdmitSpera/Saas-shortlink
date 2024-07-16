@@ -16,6 +16,11 @@ public class ShortlinkController {
 
     private final ShortlinkService shortlinkService;
 
+    /**
+     * 新增短链
+     * @param requestParam
+     * @return
+     */
     @PostMapping("/api/short-link/project/v1/create")
     public Result<ShortLinkCreateRespDTO> createShortLink(@RequestBody ShortLinkCreateReqDTO requestParam) {
         return Results.success(shortlinkService.createShortLink(requestParam));
