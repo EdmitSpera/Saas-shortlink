@@ -46,6 +46,21 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDo> implemen
     }
 
     /**
+     * 这里使用软删除，通过update的方式设置del_flag值为1
+     * @param gid
+     */
+    @Override
+    public void deleteGroup(String gid) {
+        LambdaQueryWrapper<GroupDo> queryWrapper = Wrappers.lambdaQuery(GroupDo.class)
+                .eq(GroupDo::getGid, gid)
+                .eq(GroupDo::getUsername, UserContext.getUsername())
+                .eq(GroupDo::getDelFlag, 0);
+        GroupDo groupDo = new GroupDo();
+        groupDo.setDelFlag(1);
+        baseMapper.update(groupDo, queryWrapper);
+    }
+
+    /**
      * 判断数据库中是否存在随机生成的Gid
      * @return true是存在
      */

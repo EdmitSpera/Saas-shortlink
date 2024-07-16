@@ -18,4 +18,6 @@ public interface GroupService extends IService<GroupDo> {
     void saveGroup(String groupName);
 
     List<ShortLinkGroupRespDTO> listGroup();
+
+    void deleteGroup(String gid);
 }
