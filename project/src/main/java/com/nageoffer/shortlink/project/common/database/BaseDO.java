@@ -46,4 +46,23 @@ public class BaseDO {
      */
     @TableField(fill = FieldFill.INSERT)
     private Integer delFlag;
+
+    /**
+     * 启用标识 0：未启用 1：已启用
+     */
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private int enableStatus;
+
+    /**
+     * 创建类型 0：控制台 1：接口
+     */
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private int createdType;
+
+    /**
+     * 有效期类型 0：永久有效 1：用户自定义
+     */
+    @TableField(fill = FieldFill.INSERT_UPDATE)
+    private int validDateType;
+
 }
