@@ -13,7 +13,7 @@
       </jdbc-additional-properties>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
-    <data-source source="LOCAL" name="0@127.0.0.1" uuid="cfaa4882-c3b2-4207-915b-96f97d9c3c16">
+    <data-source source="LOCAL" name="0@127.0.0.1" uuid="042c2126-4198-46b2-ad34-2140678e2992">
       <driver-ref>redis</driver-ref>
       <synchronize>true</synchronize>
       <imported>true</imported>

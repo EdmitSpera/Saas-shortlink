@@ -1,5 +1,6 @@
 package com.nageoffer.shortlink.admin.common.enums;
 
+
 import com.nageoffer.shortlink.admin.common.convention.errorcode.IErrorCode;
 
 // 用户系统二级宏观错误
@@ -11,6 +12,7 @@ public enum UserErrorCodeEnum implements IErrorCode {
     USER_LOGIN_ALREADY("B000203","用户已登录"),
     USER_LOGIN_NULL("B000204","用户未登录"),
     USER_LOGIN_TIMEOUT("B000205","用户登录过期");
+
 
 
     private final String code;
