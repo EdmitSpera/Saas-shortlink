@@ -76,7 +76,8 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
         LambdaQueryWrapper<ShortLinkDo> queryWrapper = Wrappers.lambdaQuery(ShortLinkDo.class)
                 .eq(ShortLinkDo::getGid, requestParam.getGid())
                 .eq(ShortLinkDo::getDelFlag, 0)
-                .eq(ShortLinkDo::getEnableStatus, 0);
+                .eq(ShortLinkDo::getEnableStatus, 0)
+                .orderByDesc(ShortLinkDo::getCreateTime);
 
 
         IPage<ShortLinkDo> resultPage = baseMapper.selectPage(requestParam, queryWrapper);
