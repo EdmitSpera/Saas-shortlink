@@ -63,7 +63,7 @@ public class UserController {
      * @param requestParam 注册请求参数
      * @return 空结果
      */
-    @PostMapping("/api/shortlink/v1/user")
+    @PostMapping("/api/shortlink/v1/user/register")
     public Result<Void> register(@RequestBody UserRegisterReqDTO requestParam) {
         userService.Register(requestParam);
         return Results.success();

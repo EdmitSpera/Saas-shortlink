@@ -1,4 +1,4 @@
-package com.nageoffer.shortlink.project.config;
+package com.nageoffer.shortlink.project.common.config;
 
 import org.redisson.api.RBloomFilter;
 import org.redisson.api.RedissonClient;
