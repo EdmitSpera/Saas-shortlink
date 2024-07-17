@@ -31,5 +31,9 @@ public class HashUtil {
         return convertDecToBase62(num);
     }
 
+    public static void main(String[] args) {
+        hashToBase62("abc");
+    }
+
 
 }
