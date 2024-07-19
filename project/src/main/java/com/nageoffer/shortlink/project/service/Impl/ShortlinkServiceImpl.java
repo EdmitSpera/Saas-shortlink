@@ -33,6 +33,12 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
     private final RBloomFilter<String> shortUriCreateCachePenetrationBloomFilter;
     private final StringRedisTemplate stringRedisTemplate;
 
+    /**
+     * 创建短链接
+     *
+     * @param requestParam 请求参数
+     * @return 短链接创建响应DTO
+     */
     @Override
     public ShortLinkCreateRespDTO createShortLink(ShortLinkCreateReqDTO requestParam) {
         if(stringRedisTemplate.opsForValue().get(requestParam.getOriginUrl()) != null){
@@ -51,8 +57,8 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
         try {
             // 在生成shortLinkSuffix时“保证”了该shortLinkSuffix不存在数据库，为什么还要加一层异常处理呢？
             // 个人理解是，可能存在了数据插入到数据库但还没来得及加到布隆过滤器中
-            // 可能是进程挂掉了 由于这里没有加事务，入库的操作还没来得及回滚
-            // 也可能是极端高并发的场景下导致的
+            // 可能是进程挂回滚
+            // 也可能是极端高并发的场景下导致的掉了 由于这里没有加事务，入库的操作还没来得及
             // 所以使用异常处理捕获数据库中的数据约束，重复数据的异常，进行兜底
             baseMapper.insert(shortLinkDo);
             stringRedisTemplate.opsForValue().set(requestParam.getOriginUrl(), "0");
@@ -71,6 +77,12 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
                 .build();
     }
 
+    /**
+     * 分页查询短链接
+     *
+     * @param requestParam 分页请求参数
+     * @return 短链接分页响应DTO
+     */
     @Override
     public IPage<ShortLinkPageRespDTO> pageShortLink(ShortLinkPageReqDTO requestParam) {
         LambdaQueryWrapper<ShortLinkDo> queryWrapper = Wrappers.lambdaQuery(ShortLinkDo.class)
@@ -85,12 +97,18 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
         return resultPage.convert(each -> BeanUtil.toBean(each, ShortLinkPageRespDTO.class));
     }
 
+    /**
+     * 生成短链接后缀
+     *
+     * @param requestParam 请求参数
+     * @return 短链接后缀
+     */
     public String generateSuffix(ShortLinkCreateReqDTO requestParam) {
         int customGenerateCount = 0;
         String shortUri = null;
         while(true){
             // 最大重试次数为10
-            if(customGenerateCount == 10){
+            if(customGenerateCount >= 10){
                 throw new ClientException(SERVICE_TIMEOUT_ERROR);
             }
             // 加上时间戳来进行哈希
