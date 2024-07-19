@@ -35,7 +35,7 @@ public class ShortlinkController {
      * @param requestParam 请求参数，包含分页查询所需的信息
      * @return 包含分页查询结果的响应对象
      */
-    @GetMapping("/api/short-link/v1/page")
+    @GetMapping("/api/short-link/project/v1/page")
     public Result<IPage<ShortLinkPageRespDTO>> pageShortLink(@RequestBody ShortLinkPageReqDTO requestParam){
         return Results.success(shortlinkService.pageShortLink(requestParam));
     }

@@ -36,7 +36,6 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDo> implemen
 
     @Override
     public List<ShortLinkGroupRespDTO> listGroup() {
-        // TODO 获取用户名
         LambdaQueryWrapper<GroupDo> queryWrapper = Wrappers.lambdaQuery(GroupDo.class)
                 .eq(GroupDo::getDelFlag, 0)
                 .eq(GroupDo::getUsername, UserContext.getUsername())
