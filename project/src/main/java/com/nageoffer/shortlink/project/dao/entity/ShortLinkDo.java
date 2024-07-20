@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.nageoffer.shortlink.project.common.database.BaseDO;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.util.Date;
 
@@ -56,9 +57,19 @@ public class ShortLinkDo extends BaseDO {
     private Date validDate;
 
     /**
+     * 有效期类型
+     */
+    private int validDateType;
+
+
+    /**
      * 描述
      */
     @TableField("`describe`")
     private String describe;
 
+    /**
+     * 图像
+     */
+    private String favicon;
 }

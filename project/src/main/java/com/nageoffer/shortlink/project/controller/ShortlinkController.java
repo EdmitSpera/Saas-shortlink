@@ -1,18 +1,22 @@
 package com.nageoffer.shortlink.project.controller;
 
+import cn.hutool.http.server.HttpServerRequest;
+import cn.hutool.http.server.HttpServerResponse;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.nageoffer.shortlink.project.common.convention.result.Result;
 import com.nageoffer.shortlink.project.common.convention.result.Results;
 import com.nageoffer.shortlink.project.dto.req.ShortLinkCreateReqDTO;
 import com.nageoffer.shortlink.project.dto.req.ShortLinkPageReqDTO;
+import com.nageoffer.shortlink.project.dto.req.ShortLinkUpdateReqDTO;
 import com.nageoffer.shortlink.project.dto.resp.ShortLinkCreateRespDTO;
 import com.nageoffer.shortlink.project.dto.resp.ShortLinkPageRespDTO;
 import com.nageoffer.shortlink.project.service.ShortlinkService;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
 
 @RestController
 @RequiredArgsConstructor
@@ -20,6 +24,10 @@ public class ShortlinkController {
 
     private final ShortlinkService shortlinkService;
 
+    @GetMapping("/{short-uri}")
+    public void restoreUrl(@PathVariable("short-uri")String shortUri, ServletRequest request, ServletResponse response) throws IOException {
+        shortlinkService.restoreUrl(shortUri,request,response);
+    }
     /**
      * 新增短链
      * @param requestParam 请求参数，包含创建短链所需的信息
@@ -38,5 +46,16 @@ public class ShortlinkController {
     @GetMapping("/api/short-link/project/v1/page")
     public Result<IPage<ShortLinkPageRespDTO>> pageShortLink(@RequestBody ShortLinkPageReqDTO requestParam){
         return Results.success(shortlinkService.pageShortLink(requestParam));
+    }
+
+    /**
+     * 修改短链
+     * @param requestParam
+     * @return
+     */
+    @PutMapping("/api/short-link/project/v1/update")
+    public Result<Void> updateShortLink(@RequestBody ShortLinkUpdateReqDTO requestParam){
+        shortlinkService.updateShortLink(requestParam);
+        return Results.success();
     }
 }
