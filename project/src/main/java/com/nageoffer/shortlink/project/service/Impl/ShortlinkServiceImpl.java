@@ -111,7 +111,11 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
 
         IPage<ShortLinkDo> resultPage = baseMapper.selectPage(requestParam, queryWrapper);
         // 用于将分页查询结果转换为另一种类型的列表。
-        return resultPage.convert(each -> BeanUtil.toBean(each, ShortLinkPageRespDTO.class));
+        return resultPage.convert(each -> {
+            ShortLinkPageRespDTO result = BeanUtil.toBean(each, ShortLinkPageRespDTO.class);
+            result.setDomain("http://" + result.getDomain());
+            return result;
+        });
     }
 
     /**
@@ -204,8 +208,11 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
      */
     @Override
     public void restoreUrl(String shortUri, ServletRequest request, ServletResponse response) throws IOException {
+        // 根据请求拼接完整短链接
         String serverName = request.getServerName();
         String fullShortUrl = serverName + "/" + shortUri;
+
+        // 查询跳转表中是否存在
         LambdaQueryWrapper<ShortLinkGoto> linkGotoQueryWrapper = Wrappers.lambdaQuery(ShortLinkGoto.class)
                 .eq(ShortLinkGoto::getFullShortUrl, fullShortUrl);
         ShortLinkGoto shortLinkGoto = shortLinkGotoMapper.selectOne(linkGotoQueryWrapper);
@@ -214,6 +221,8 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
             // TODO 封控？
             return;
         }
+
+        // 查询短链信息表中是否存在相应的短链接行数据
         LambdaQueryWrapper<ShortLinkDo> queryWrapper = Wrappers.lambdaQuery(ShortLinkDo.class)
                 // TODO 传进来的只有shortUri，没有Gid，这样的话无法查到对应分片的数据库
                 //  -> goto路由表解决 根据short_url找到对应的分片键
@@ -223,6 +232,8 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
                 .eq(ShortLinkDo::getDelFlag, 0)
                 .eq(ShortLinkDo::getEnableStatus, 0);
         ShortLinkDo shortLinkDo = baseMapper.selectOne(queryWrapper);
+
+        // 重定向跳转
         if (shortLinkDo != null) {
             // 进行跳转
             ((HttpServletResponse) response).sendRedirect(shortLinkDo.getOriginUrl());
