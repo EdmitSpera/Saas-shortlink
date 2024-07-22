@@ -25,6 +25,8 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RBloomFilter;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -33,7 +35,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
+import static com.nageoffer.shortlink.project.common.constant.RedisKeyConstant.GOTO_SHORT_LINK_KEY;
 import static com.nageoffer.shortlink.project.common.convention.errorcode.BaseErrorCode.SERVICE_TIMEOUT_ERROR;
 import static com.nageoffer.shortlink.project.common.enums.LinkErrorCodeEnum.LINK_CREATE_ALREADY;
 
@@ -42,8 +46,9 @@ import static com.nageoffer.shortlink.project.common.enums.LinkErrorCodeEnum.LIN
 public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> implements ShortlinkService {
 
     private final ShortLinkGotoMapper shortLinkGotoMapper;
-    private final RBloomFilter<String> shortUriCreateCachePenetrationBloomFilter;
+    private final RBloomFilter<String> shortUriBloomFilter;
     private final StringRedisTemplate stringRedisTemplate;
+    private final RedissonClient redissonClient;
 
     /**
      * 创建短链接
@@ -85,7 +90,7 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
             throw new ServiceException("短链接生成重复");
         }
 
-        shortUriCreateCachePenetrationBloomFilter.add(fullShortUrl);
+        shortUriBloomFilter.add(fullShortUrl);
 
         return ShortLinkCreateRespDTO.builder()
                 .gid(requestParam.getGid())
@@ -137,7 +142,7 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
             shortUri = HashUtil.hashToBase62(originUrlWithTime);
 
             // 使用布隆过滤器进行重复判断
-            if (!shortUriCreateCachePenetrationBloomFilter.contains(requestParam.getDomain() + "/" + shortUri)) {
+            if (!shortUriBloomFilter.contains(requestParam.getDomain() + "/" + shortUri)) {
                 break;
             }
             customGenerateCount++;
@@ -201,6 +206,7 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
 
     /**
      * 短链接跳转
+     *
      * @param shortUri 短链接后缀
      * @param request  短链接请求
      * @param response 短链接响应
@@ -212,31 +218,65 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
         String serverName = request.getServerName();
         String fullShortUrl = serverName + "/" + shortUri;
 
-        // 查询跳转表中是否存在
-        LambdaQueryWrapper<ShortLinkGoto> linkGotoQueryWrapper = Wrappers.lambdaQuery(ShortLinkGoto.class)
-                .eq(ShortLinkGoto::getFullShortUrl, fullShortUrl);
-        ShortLinkGoto shortLinkGoto = shortLinkGotoMapper.selectOne(linkGotoQueryWrapper);
-
-        if (shortLinkGoto == null) {
-            // TODO 封控？
+        // 查缓存
+        String cacheUrl = stringRedisTemplate.opsForValue().get(fullShortUrl);
+        if (cacheUrl != null && !cacheUrl.isEmpty()) {
+            // 进行跳转
+            ((HttpServletResponse) response).sendRedirect(cacheUrl);
             return;
         }
 
-        // 查询短链信息表中是否存在相应的短链接行数据
-        LambdaQueryWrapper<ShortLinkDo> queryWrapper = Wrappers.lambdaQuery(ShortLinkDo.class)
-                // TODO 传进来的只有shortUri，没有Gid，这样的话无法查到对应分片的数据库
-                //  -> goto路由表解决 根据short_url找到对应的分片键
-                //  借鉴这种策略的思想也能很好地解决分表的“读扩散问题” -> 建立一个路由索引
-                .eq(ShortLinkDo::getGid, shortLinkGoto.getGid())
-                .eq(ShortLinkDo::getFullShortUrl, fullShortUrl)
-                .eq(ShortLinkDo::getDelFlag, 0)
-                .eq(ShortLinkDo::getEnableStatus, 0);
-        ShortLinkDo shortLinkDo = baseMapper.selectOne(queryWrapper);
+        // 查布隆过滤器
+        if (!shortUriBloomFilter.contains(fullShortUrl)) {
+            // 请求不存在的资源
+            throw new ClientException("资源不存在");
+        }
 
-        // 重定向跳转
-        if (shortLinkDo != null) {
-            // 进行跳转
-            ((HttpServletResponse) response).sendRedirect(shortLinkDo.getOriginUrl());
+        RLock lock = redissonClient.getLock(String.format(GOTO_SHORT_LINK_KEY, fullShortUrl));
+        lock.lock();
+
+        try {
+            // 再次查询缓存
+            String cacheSecondUrl = stringRedisTemplate.opsForValue().get(fullShortUrl);
+            if (cacheSecondUrl != null && !cacheSecondUrl.isEmpty()) {
+                // 进行跳转
+                ((HttpServletResponse) response).sendRedirect(cacheSecondUrl);
+                return;
+            }
+
+            // 查询跳转表中是否存在
+            LambdaQueryWrapper<ShortLinkGoto> linkGotoQueryWrapper = Wrappers.lambdaQuery(ShortLinkGoto.class)
+                    .eq(ShortLinkGoto::getFullShortUrl, fullShortUrl);
+            ShortLinkGoto shortLinkGoto = shortLinkGotoMapper.selectOne(linkGotoQueryWrapper);
+
+            if (shortLinkGoto == null) {
+                // TODO 封控？
+                return;
+            }
+
+            // 查询短链信息表中是否存在相应的短链接行数据
+            LambdaQueryWrapper<ShortLinkDo> queryWrapper = Wrappers.lambdaQuery(ShortLinkDo.class)
+                    // TODO 传进来的只有shortUri，没有Gid，这样的话无法查到对应分片的数据库
+                    //  -> goto路由表解决 根据short_url找到对应的分片键
+                    //  借鉴这种策略的思想也能很好地解决分表的“读扩散问题” -> 建立一个路由索引
+                    .eq(ShortLinkDo::getGid, shortLinkGoto.getGid())
+                    .eq(ShortLinkDo::getFullShortUrl, fullShortUrl)
+                    .eq(ShortLinkDo::getDelFlag, 0)
+                    .eq(ShortLinkDo::getEnableStatus, 0);
+            ShortLinkDo shortLinkDo = baseMapper.selectOne(queryWrapper);
+
+            // 重定向跳转
+            if (shortLinkDo != null) {
+                // 将数据加入到缓存
+                stringRedisTemplate.opsForValue().set(fullShortUrl, shortLinkDo.getOriginUrl(), 30, TimeUnit.DAYS);
+                // 进行跳转
+                ((HttpServletResponse) response).sendRedirect(shortLinkDo.getOriginUrl());
+            } else {
+                // 将空值缓存下来
+                stringRedisTemplate.opsForValue().set(fullShortUrl, "", 5, TimeUnit.MINUTES);
+            }
+        } finally {
+            lock.unlock();
         }
     }
 }
