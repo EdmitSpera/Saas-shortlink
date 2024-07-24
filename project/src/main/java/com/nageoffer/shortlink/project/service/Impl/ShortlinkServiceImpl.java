@@ -20,6 +20,7 @@ import com.nageoffer.shortlink.project.dto.resp.ShortLinkCreateRespDTO;
 import com.nageoffer.shortlink.project.dto.resp.ShortLinkPageRespDTO;
 import com.nageoffer.shortlink.project.service.ShortlinkService;
 import com.nageoffer.shortlink.project.util.HashUtil;
+import com.nageoffer.shortlink.project.util.LinkUtil;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletResponse;
@@ -89,6 +90,12 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
             log.warn(errorMsg);
             throw new ServiceException("短链接生成重复");
         }
+
+        // 缓存预热 设置有效期，永久有效和暂时有效
+        stringRedisTemplate.opsForValue().set(
+                fullShortUrl,
+                requestParam.getOriginUrl(), 
+                LinkUtil.getLinkCacheValidData(requestParam.getValidDate()));
 
         shortUriBloomFilter.add(fullShortUrl);
 
