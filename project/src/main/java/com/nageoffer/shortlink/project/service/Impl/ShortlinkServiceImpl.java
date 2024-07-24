@@ -220,7 +220,10 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
 
         // 查缓存
         String cacheUrl = stringRedisTemplate.opsForValue().get(fullShortUrl);
-        if (cacheUrl != null && !cacheUrl.isEmpty()) {
+        if (cacheUrl != null) {
+            if(cacheUrl.isEmpty()){
+                throw new ClientException("资源不存在");
+            }
             // 进行跳转
             ((HttpServletResponse) response).sendRedirect(cacheUrl);
             return;
@@ -238,7 +241,10 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
         try {
             // 再次查询缓存
             String cacheSecondUrl = stringRedisTemplate.opsForValue().get(fullShortUrl);
-            if (cacheSecondUrl != null && !cacheSecondUrl.isEmpty()) {
+            if (cacheSecondUrl != null) {
+                if(cacheSecondUrl.isEmpty()){
+                    throw new ClientException("资源不存在");
+                }
                 // 进行跳转
                 ((HttpServletResponse) response).sendRedirect(cacheSecondUrl);
                 return;
@@ -273,7 +279,7 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
                 ((HttpServletResponse) response).sendRedirect(shortLinkDo.getOriginUrl());
             } else {
                 // 将空值缓存下来
-                stringRedisTemplate.opsForValue().set(fullShortUrl, "", 5, TimeUnit.MINUTES);
+                stringRedisTemplate.opsForValue().set(fullShortUrl, "", 2, TimeUnit.MINUTES);
             }
         } finally {
             lock.unlock();
