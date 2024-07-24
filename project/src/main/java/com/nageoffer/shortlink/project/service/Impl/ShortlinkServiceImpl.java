@@ -1,6 +1,11 @@
 package com.nageoffer.shortlink.project.service.Impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.date.Week;
+import cn.hutool.core.lang.UUID;
+import cn.hutool.core.util.ArrayUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -9,8 +14,10 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.nageoffer.shortlink.project.common.convention.exception.ClientException;
 import com.nageoffer.shortlink.project.common.convention.exception.ServiceException;
 import com.nageoffer.shortlink.project.common.enums.VailDateTypeEnum;
+import com.nageoffer.shortlink.project.dao.entity.LinkAccessStatsDO;
 import com.nageoffer.shortlink.project.dao.entity.ShortLinkDo;
 import com.nageoffer.shortlink.project.dao.entity.ShortLinkGoto;
+import com.nageoffer.shortlink.project.dao.mapper.LinkAccessStatsMapper;
 import com.nageoffer.shortlink.project.dao.mapper.LinkMapper;
 import com.nageoffer.shortlink.project.dao.mapper.ShortLinkGotoMapper;
 import com.nageoffer.shortlink.project.dto.req.ShortLinkCreateReqDTO;
@@ -23,7 +30,10 @@ import com.nageoffer.shortlink.project.util.HashUtil;
 import com.nageoffer.shortlink.project.util.LinkUtil;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jodd.util.ArraysUtil;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
@@ -34,10 +44,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.nageoffer.shortlink.project.common.constant.RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY;
 import static com.nageoffer.shortlink.project.common.constant.RedisKeyConstant.GOTO_SHORT_LINK_KEY;
@@ -52,6 +63,7 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
     private final RBloomFilter<String> shortUriBloomFilter;
     private final StringRedisTemplate stringRedisTemplate;
     private final RedissonClient redissonClient;
+    private final LinkAccessStatsMapper linkAccessStatsMapper;
 
     /**
      * 创建短链接
@@ -97,7 +109,8 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
         stringRedisTemplate.opsForValue().set(
                 fullShortUrl,
                 requestParam.getOriginUrl(),
-                LinkUtil.getLinkCacheValidData(requestParam.getValidDate()));
+                LinkUtil.getLinkCacheValidTime(requestParam.getValidDate()), TimeUnit.MILLISECONDS
+        );
 
         shortUriBloomFilter.add(fullShortUrl);
 
@@ -106,6 +119,57 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
                 .originUrl(requestParam.getOriginUrl())
                 .fullShortUrl("http://" + shortLinkDo.getFullShortUrl())
                 .build();
+    }
+
+    /**
+     * 短链接状态查询
+     */
+    private void shortLinkStats(String fullShortUrl, ServletRequest request, ServletResponse response) {
+        Cookie[] cookies = ((HttpServletRequest) request).getCookies();
+        AtomicBoolean uvFirstFlag = new AtomicBoolean();
+
+        try {
+            Runnable addResponseCookieTask = () -> {
+                String uv = UUID.fastUUID().toString();
+                Cookie uvCookie = new Cookie("uv", uv);
+                uvCookie.setMaxAge(60 * 60 * 24 * 30);      // 有效期一个月
+                uvCookie.setPath(StrUtil.sub(fullShortUrl, fullShortUrl.indexOf("/"), fullShortUrl.length()));     // 设置Cookie的作用域
+                ((HttpServletResponse) response).addCookie(uvCookie);
+                uvFirstFlag.set(Boolean.TRUE);
+                stringRedisTemplate.opsForSet().add("shortlink:stats:uv" + fullShortUrl, uv);
+            };
+
+            // 如果请求中带有cookie那就不设置
+            if (ArrayUtil.isNotEmpty(cookies)) {
+                Arrays.stream(cookies)
+                        .filter(each -> Objects.equals(each.getName(), "uv"))
+                        .findFirst()
+                        .map(Cookie::getValue)
+                        .ifPresentOrElse(each -> {
+                            Long added = stringRedisTemplate.opsForSet().add("shortlink:stats:uv:" + fullShortUrl, each);
+                            uvFirstFlag.set(added != null && added > 0);
+                        }, addResponseCookieTask);
+            } else {
+                // 第一次访问
+                addResponseCookieTask.run();
+            }
+
+            int hour = DateUtil.hour(new Date(), true);
+            Week week = DateUtil.dayOfWeekEnum(new Date());
+            int weekValue = week.getValue();
+            LinkAccessStatsDO linkAccessStatsDO = LinkAccessStatsDO.builder()
+                    .pv(1)
+                    .uv(1)
+                    .uip(1)
+                    .hour(hour)
+                    .weekday(weekValue)
+                    .fullShortUrl(fullShortUrl)
+                    .date(new Date())
+                    .build();
+            linkAccessStatsMapper.insert(linkAccessStatsDO);
+        } catch (Throwable ex) {
+            log.error("短链接访问异常" + ex.getMessage());
+        }
     }
 
     /**
@@ -147,7 +211,7 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
                 throw new ClientException(SERVICE_TIMEOUT_ERROR);
             }
             // 加上时间戳来进行哈希
-            String originUrlWithTime = requestParam.getOriginUrl() + UUID.randomUUID();
+            String originUrlWithTime = requestParam.getOriginUrl() + UUID.fastUUID();
             shortUri = HashUtil.hashToBase62(originUrlWithTime);
 
             // 使用布隆过滤器进行重复判断
@@ -236,6 +300,7 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
             }
             // 进行跳转
             ((HttpServletResponse) response).sendRedirect(cacheUrl);
+            shortLinkStats(fullShortUrl, request, response);
             return;
         }
 
@@ -299,6 +364,7 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
                 stringRedisTemplate.opsForValue().set(fullShortUrl, shortLinkDo.getOriginUrl(), 30, TimeUnit.DAYS);
                 // 进行跳转
                 ((HttpServletResponse) response).sendRedirect(shortLinkDo.getOriginUrl());
+                shortLinkStats(fullShortUrl, request, response);
             } else {
                 // 将空值缓存下来
                 stringRedisTemplate.opsForValue().set(fullShortUrl, "", 2, TimeUnit.MINUTES);
