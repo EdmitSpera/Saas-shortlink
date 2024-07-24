@@ -34,10 +34,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.util.Date;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static com.nageoffer.shortlink.project.common.constant.RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY;
 import static com.nageoffer.shortlink.project.common.constant.RedisKeyConstant.GOTO_SHORT_LINK_KEY;
 import static com.nageoffer.shortlink.project.common.convention.errorcode.BaseErrorCode.SERVICE_TIMEOUT_ERROR;
 import static com.nageoffer.shortlink.project.common.enums.LinkErrorCodeEnum.LINK_CREATE_ALREADY;
@@ -94,7 +96,7 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
         // 缓存预热 设置有效期，永久有效和暂时有效
         stringRedisTemplate.opsForValue().set(
                 fullShortUrl,
-                requestParam.getOriginUrl(), 
+                requestParam.getOriginUrl(),
                 LinkUtil.getLinkCacheValidData(requestParam.getValidDate()));
 
         shortUriBloomFilter.add(fullShortUrl);
@@ -228,7 +230,7 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
         // 查缓存
         String cacheUrl = stringRedisTemplate.opsForValue().get(fullShortUrl);
         if (cacheUrl != null) {
-            if(cacheUrl.isEmpty()){
+            if (cacheUrl.isEmpty()) {
                 throw new ClientException("资源不存在");
             }
             // 进行跳转
@@ -249,7 +251,7 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
             // 再次查询缓存
             String cacheSecondUrl = stringRedisTemplate.opsForValue().get(fullShortUrl);
             if (cacheSecondUrl != null) {
-                if(cacheSecondUrl.isEmpty()){
+                if (cacheSecondUrl.isEmpty()) {
                     throw new ClientException("资源不存在");
                 }
                 // 进行跳转
@@ -263,7 +265,7 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
             ShortLinkGoto shortLinkGoto = shortLinkGotoMapper.selectOne(linkGotoQueryWrapper);
 
             if (shortLinkGoto == null) {
-                // TODO 封控？
+                stringRedisTemplate.opsForValue().set(fullShortUrl, "", 3, TimeUnit.MINUTES);
                 return;
             }
 
@@ -280,6 +282,14 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
 
             // 重定向跳转
             if (shortLinkDo != null) {
+
+                // 过期短链处理
+                if (shortLinkDo.getValidDate() != null && shortLinkDo.getValidDate().before(new Date())) {
+                    // 过期了
+                    stringRedisTemplate.opsForValue().set(fullShortUrl, "", 3, TimeUnit.MINUTES);
+                    return;
+                }
+
                 // 将数据加入到缓存
                 stringRedisTemplate.opsForValue().set(fullShortUrl, shortLinkDo.getOriginUrl(), 30, TimeUnit.DAYS);
                 // 进行跳转
