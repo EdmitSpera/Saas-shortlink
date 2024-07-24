@@ -19,3 +19,9 @@ spring:
       host: 127.0.0.1
       port: 6379
       password: 123456
+
+#  这里的路径是资源路径resources
+  mvc:
+    view:
+      prefix: /templates/
+      suffix: .html

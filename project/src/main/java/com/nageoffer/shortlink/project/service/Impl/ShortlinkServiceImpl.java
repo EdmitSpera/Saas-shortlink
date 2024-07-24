@@ -231,6 +231,7 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
         String cacheUrl = stringRedisTemplate.opsForValue().get(fullShortUrl);
         if (cacheUrl != null) {
             if (cacheUrl.isEmpty()) {
+                ((HttpServletResponse) response).sendRedirect("/page/notfound");
                 throw new ClientException("资源不存在");
             }
             // 进行跳转
@@ -240,6 +241,7 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
 
         // 查布隆过滤器
         if (!shortUriBloomFilter.contains(fullShortUrl)) {
+            ((HttpServletResponse) response).sendRedirect("/page/notfound");
             // 请求不存在的资源
             throw new ClientException("资源不存在");
         }
@@ -252,6 +254,7 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
             String cacheSecondUrl = stringRedisTemplate.opsForValue().get(fullShortUrl);
             if (cacheSecondUrl != null) {
                 if (cacheSecondUrl.isEmpty()) {
+                    ((HttpServletResponse) response).sendRedirect("/page/notfound");
                     throw new ClientException("资源不存在");
                 }
                 // 进行跳转
@@ -266,6 +269,7 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
 
             if (shortLinkGoto == null) {
                 stringRedisTemplate.opsForValue().set(fullShortUrl, "", 3, TimeUnit.MINUTES);
+                ((HttpServletResponse) response).sendRedirect("/page/notfound");
                 return;
             }
 
@@ -287,6 +291,7 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
                 if (shortLinkDo.getValidDate() != null && shortLinkDo.getValidDate().before(new Date())) {
                     // 过期了
                     stringRedisTemplate.opsForValue().set(fullShortUrl, "", 3, TimeUnit.MINUTES);
+                    ((HttpServletResponse) response).sendRedirect("/page/notfound");
                     return;
                 }
 
