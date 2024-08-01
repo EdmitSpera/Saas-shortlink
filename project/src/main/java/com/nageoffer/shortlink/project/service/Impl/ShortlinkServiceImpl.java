@@ -33,7 +33,6 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jodd.util.ArraysUtil;
 import lombok.RequiredArgsConstructor;
 import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
@@ -50,7 +49,6 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.nageoffer.shortlink.project.common.constant.RedisKeyConstant.GOTO_IS_NULL_SHORT_LINK_KEY;
 import static com.nageoffer.shortlink.project.common.constant.RedisKeyConstant.GOTO_SHORT_LINK_KEY;
 import static com.nageoffer.shortlink.project.common.convention.errorcode.BaseErrorCode.SERVICE_TIMEOUT_ERROR;
 import static com.nageoffer.shortlink.project.common.enums.LinkErrorCodeEnum.LINK_CREATE_ALREADY;
@@ -128,8 +126,11 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
         Cookie[] cookies = ((HttpServletRequest) request).getCookies();
         AtomicBoolean uvFirstFlag = new AtomicBoolean();
 
+        // uv统计
         try {
+            // 声明线程任务
             Runnable addResponseCookieTask = () -> {
+                // Runnable的run方法中的实现 -> 生成uv的标识，并将其放入到cookie中
                 String uv = UUID.fastUUID().toString();
                 Cookie uvCookie = new Cookie("uv", uv);
                 uvCookie.setMaxAge(60 * 60 * 24 * 30);      // 有效期一个月
@@ -146,27 +147,34 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
                         .findFirst()
                         .map(Cookie::getValue)
                         .ifPresentOrElse(each -> {
-                            Long added = stringRedisTemplate.opsForSet().add("shortlink:stats:uv:" + fullShortUrl, each);
-                            uvFirstFlag.set(added != null && added > 0);
+                            Long uvAdded = stringRedisTemplate.opsForSet().add("shortlink:stats:uv:" + fullShortUrl, each);
+                            uvFirstFlag.set(uvAdded != null && uvAdded > 0L);
                         }, addResponseCookieTask);
             } else {
                 // 第一次访问
                 addResponseCookieTask.run();
             }
 
+            // uip记录
+            String remoteAddr = request.getRemoteAddr();
+            Long uipAdded = stringRedisTemplate.opsForSet().add("short-link:stats:uip" + fullShortUrl, remoteAddr);
+            boolean uipFirstFlag = uipAdded != null && uipAdded > 0;
+
+
             int hour = DateUtil.hour(new Date(), true);
             Week week = DateUtil.dayOfWeekEnum(new Date());
             int weekValue = week.getValue();
             LinkAccessStatsDO linkAccessStatsDO = LinkAccessStatsDO.builder()
                     .pv(1)
-                    .uv(1)
-                    .uip(1)
+                    .uv(uvFirstFlag.get() ? 1 : 0)
+                    .uip(uipFirstFlag ? 1 : 0)
                     .hour(hour)
                     .weekday(weekValue)
                     .fullShortUrl(fullShortUrl)
                     .date(new Date())
                     .build();
-            linkAccessStatsMapper.insert(linkAccessStatsDO);
+            // 更新pv
+            linkAccessStatsMapper.shortLinkStats(linkAccessStatsDO);
         } catch (Throwable ex) {
             log.error("短链接访问异常" + ex.getMessage());
         }
