@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.nageoffer.shortlink.project.common.convention.result.Result;
 import com.nageoffer.shortlink.project.common.convention.result.Results;
 import com.nageoffer.shortlink.project.dto.req.ShortLinkCreateReqDTO;
+import com.nageoffer.shortlink.project.dto.req.ShortLinkDeleteReqDTO;
 import com.nageoffer.shortlink.project.dto.req.ShortLinkPageReqDTO;
 import com.nageoffer.shortlink.project.dto.req.ShortLinkUpdateReqDTO;
 import com.nageoffer.shortlink.project.dto.resp.ShortLinkCreateRespDTO;
@@ -56,6 +57,17 @@ public class ShortlinkController {
     @PutMapping("/api/short-link/project/v1/update")
     public Result<Void> updateShortLink(@RequestBody ShortLinkUpdateReqDTO requestParam){
         shortlinkService.updateShortLink(requestParam);
+        return Results.success();
+    }
+
+    /**
+     * 删除短链
+     * @param requestParam
+     * @return
+     */
+    @PostMapping("/api/short-link/project/v1/delete")
+    public Result<Void> deleteShortLink(@RequestBody ShortLinkDeleteReqDTO requestParam){
+        shortlinkService.deleteShortLink(requestParam);
         return Results.success();
     }
 }

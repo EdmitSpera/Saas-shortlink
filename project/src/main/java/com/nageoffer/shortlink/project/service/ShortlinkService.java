@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.nageoffer.shortlink.project.dao.entity.ShortLinkDo;
 import com.nageoffer.shortlink.project.dto.req.ShortLinkCreateReqDTO;
+import com.nageoffer.shortlink.project.dto.req.ShortLinkDeleteReqDTO;
 import com.nageoffer.shortlink.project.dto.req.ShortLinkPageReqDTO;
 import com.nageoffer.shortlink.project.dto.req.ShortLinkUpdateReqDTO;
 import com.nageoffer.shortlink.project.dto.resp.ShortLinkCreateRespDTO;
@@ -32,7 +33,17 @@ public interface ShortlinkService extends IService<ShortLinkDo> {
      */
     IPage<ShortLinkPageRespDTO> pageShortLink(ShortLinkPageReqDTO requestParam);
 
+    /**
+     * 修改短链接
+     * @param requestParam
+     */
     void updateShortLink(ShortLinkUpdateReqDTO requestParam);
+
+    /**
+     * 删除短链接
+     * @param requestParam
+     */
+    void deleteShortLink(ShortLinkDeleteReqDTO requestParam);
 
     /**
      * 短链接跳转

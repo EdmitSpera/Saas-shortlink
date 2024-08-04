@@ -21,6 +21,7 @@ import com.nageoffer.shortlink.project.dao.mapper.LinkAccessStatsMapper;
 import com.nageoffer.shortlink.project.dao.mapper.LinkMapper;
 import com.nageoffer.shortlink.project.dao.mapper.ShortLinkGotoMapper;
 import com.nageoffer.shortlink.project.dto.req.ShortLinkCreateReqDTO;
+import com.nageoffer.shortlink.project.dto.req.ShortLinkDeleteReqDTO;
 import com.nageoffer.shortlink.project.dto.req.ShortLinkPageReqDTO;
 import com.nageoffer.shortlink.project.dto.req.ShortLinkUpdateReqDTO;
 import com.nageoffer.shortlink.project.dto.resp.ShortLinkCreateRespDTO;
@@ -75,6 +76,7 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
             // 说明源链接已经生成了，所以不生成
             throw new ClientException(LINK_CREATE_ALREADY);
         }
+
         // 根据源URL生成短链接
         String shortLinkSuffix = generateSuffix(requestParam);
         String fullShortUrl = requestParam.getDomain() + "/" + shortLinkSuffix;
@@ -283,6 +285,27 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
             baseMapper.delete(updateWrapper);
             baseMapper.insert(shortLinkDo);
         }
+    }
+
+    /**
+     * 删除短链接
+     * @param requestParam
+     */
+    @Override
+    public void deleteShortLink(ShortLinkDeleteReqDTO requestParam) {
+        LambdaQueryWrapper<ShortLinkDo> queryWrapper = Wrappers.lambdaQuery(ShortLinkDo.class)
+                .eq(ShortLinkDo::getShortUri, requestParam.getShortUri())
+                .eq(ShortLinkDo::getFullShortUrl, requestParam.getFullShortUrl())
+                .eq(ShortLinkDo::getOriginUrl, requestParam.getOriginUrl())
+                .eq(ShortLinkDo::getGid, requestParam.getGid())
+                .eq(ShortLinkDo::getDelFlag, 0);
+        ShortLinkDo shortLinkDo = baseMapper.selectOne(queryWrapper);
+
+        if(shortLinkDo == null){
+            throw new ClientException("删除不存在的消息");
+        }
+
+        baseMapper.deleteById(shortLinkDo.getId());
     }
 
     /**
