@@ -30,6 +30,7 @@ public class UserTransmitFilter implements Filter {
 
     private final StringRedisTemplate stringRedisTemplate;
 
+    // 需要放行的url
     private static final List<String> IGNORE_URI = Lists.newArrayList(
             "/api/shortlink/v1/user/login",
             "/api/shortlink/v1/user/register",
