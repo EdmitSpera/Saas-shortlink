@@ -2,6 +2,7 @@ package com.nageoffer.shortlink.project.dao.entity;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.nageoffer.shortlink.project.common.database.BaseDO;
 import lombok.AllArgsConstructor;
@@ -69,6 +70,7 @@ public class LinkAccessStatsDO {
     /**
      * 删除标识 0：未删除 1：已删除
      */
+    @TableLogic
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private Integer delFlag;
 }
