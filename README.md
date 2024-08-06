@@ -1,9 +1,32 @@
-# Saas-shortlink
-### 生成短链流程图
+# 短链接管理系统
+### 生成短链
 ![processing.png](processing.png)
 
 ![processing_.png](processing_.png)
-
+### 修改短链
+![img_8.png](ReadMeImag/img_8.png)
+### 短链跳转
+![img_9.png](ReadMeImag/img_9.png)
+### 服务调用
+![img_10.png](ReadMeImag/img_10.png)
+## 核心服务接口演示
+### 用户后管
+- 注册
+- ![img.png](ReadMeImag/img.png)
+- 登录
+- ![img_1.png](ReadMeImag/img_1.png)
+- 用户信息获取
+- ![img_2.png](ReadMeImag/img_2.png)
+### 短链中台
+- 用户创建的短链分组查询
+- ![img_3.png](ReadMeImag/img_3.png)
+- 创建短链
+- ![img_4.png](ReadMeImag/img_4.png)
+- 查询分组下短链
+- ![img_5.png](ReadMeImag/img_5.png)
+- 短链跳转
+- ![img_6.png](ReadMeImag/img_6.png)
+- ![img_7.png](ReadMeImag/img_7.png)
 ## 项目技术回顾 🚀
 
 ### 🌱 Spring-boot项目的创建和配置过程
@@ -113,6 +136,10 @@ private static final ThreadLocal<UserInfoDTO> USER_THREAD_LOCAL = new Transmitta
 ### 📊 分页功能——Mybatis-Plus
 - 配置分页插件
 - 声明分页查询Param类 -> 继承Page<Object>
+
+### 微服务改造——SpringCloudAlibaba
+- Nacos 服务注册配置 服务发现
+- Nginx 网关 负载均衡 限流熔断 统一 API 管理
 
 出于**交流学习**目的，非商业用途，侵删
 参考资料

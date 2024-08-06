@@ -7,7 +7,6 @@ import com.alibaba.fastjson2.TypeReference;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.nageoffer.shortlink.admin.common.convention.result.Result;
 import com.nageoffer.shortlink.admin.remote.dto.req.ShortLinkCreateReqDTO;
-import com.nageoffer.shortlink.admin.remote.dto.req.ShortLinkPageReqDTO;
 import com.nageoffer.shortlink.admin.remote.dto.resp.ShortLinkCreateRespDTO;
 import com.nageoffer.shortlink.admin.remote.dto.resp.ShortLinkPageRespDTO;
 import lombok.RequiredArgsConstructor;
