@@ -122,67 +122,6 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
     }
 
     /**
-     * 短链接状态查询
-     */
-    private void shortLinkStats(String fullShortUrl, ServletRequest request, ServletResponse response) {
-        Cookie[] cookies = ((HttpServletRequest) request).getCookies();
-        AtomicBoolean uvFirstFlag = new AtomicBoolean();
-
-        // uv统计
-        try {
-            // 声明线程任务
-            Runnable addResponseCookieTask = () -> {
-                // Runnable的run方法中的实现 -> 生成uv的标识，并将其放入到cookie中
-                String uv = UUID.fastUUID().toString();
-                Cookie uvCookie = new Cookie("uv", uv);
-                uvCookie.setMaxAge(60 * 60 * 24 * 30);      // 有效期一个月
-                uvCookie.setPath(StrUtil.sub(fullShortUrl, fullShortUrl.indexOf("/"), fullShortUrl.length()));     // 设置Cookie的作用域
-                ((HttpServletResponse) response).addCookie(uvCookie);
-                uvFirstFlag.set(Boolean.TRUE);
-                stringRedisTemplate.opsForSet().add("shortlink:stats:uv" + fullShortUrl, uv);
-            };
-
-            // 如果请求中带有cookie那就不设置
-            if (ArrayUtil.isNotEmpty(cookies)) {
-                Arrays.stream(cookies)
-                        .filter(each -> Objects.equals(each.getName(), "uv"))
-                        .findFirst()
-                        .map(Cookie::getValue)
-                        .ifPresentOrElse(each -> {
-                            Long uvAdded = stringRedisTemplate.opsForSet().add("shortlink:stats:uv:" + fullShortUrl, each);
-                            uvFirstFlag.set(uvAdded != null && uvAdded > 0L);
-                        }, addResponseCookieTask);
-            } else {
-                // 第一次访问
-                addResponseCookieTask.run();
-            }
-
-            // uip记录
-            String remoteAddr = request.getRemoteAddr();
-            Long uipAdded = stringRedisTemplate.opsForSet().add("short-link:stats:uip" + fullShortUrl, remoteAddr);
-            boolean uipFirstFlag = uipAdded != null && uipAdded > 0;
-
-
-            int hour = DateUtil.hour(new Date(), true);
-            Week week = DateUtil.dayOfWeekEnum(new Date());
-            int weekValue = week.getValue();
-            LinkAccessStatsDO linkAccessStatsDO = LinkAccessStatsDO.builder()
-                    .pv(1)
-                    .uv(uvFirstFlag.get() ? 1 : 0)
-                    .uip(uipFirstFlag ? 1 : 0)
-                    .hour(hour)
-                    .weekday(weekValue)
-                    .fullShortUrl(fullShortUrl)
-                    .date(new Date())
-                    .build();
-            // 更新pv
-            linkAccessStatsMapper.shortLinkStats(linkAccessStatsDO);
-        } catch (Throwable ex) {
-            log.error("短链接访问异常" + ex.getMessage());
-        }
-    }
-
-    /**
      * 分页查询短链接
      *
      * @param requestParam 分页请求参数
@@ -206,32 +145,6 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
         });
     }
 
-    /**
-     * 生成短链接后缀
-     *
-     * @param requestParam 请求参数
-     * @return 短链接后缀
-     */
-    public String generateSuffix(ShortLinkCreateReqDTO requestParam) {
-        int customGenerateCount = 0;
-        String shortUri = null;
-        while (true) {
-            // 最大重试次数为10
-            if (customGenerateCount >= 10) {
-                throw new ClientException(SERVICE_TIMEOUT_ERROR);
-            }
-            // 加上时间戳来进行哈希
-            String originUrlWithTime = requestParam.getOriginUrl() + UUID.fastUUID();
-            shortUri = HashUtil.hashToBase62(originUrlWithTime);
-
-            // 使用布隆过滤器进行重复判断
-            if (!shortUriBloomFilter.contains(requestParam.getDomain() + "/" + shortUri)) {
-                break;
-            }
-            customGenerateCount++;
-        }
-        return shortUri;
-    }
 
     /**
      * 修改短链接
@@ -402,6 +315,95 @@ public class ShortlinkServiceImpl extends ServiceImpl<LinkMapper, ShortLinkDo> i
             }
         } finally {
             lock.unlock();
+        }
+    }
+
+    /**
+     * 生成短链接后缀
+     *
+     * @param requestParam 请求参数
+     * @return 短链接后缀
+     */
+    public String generateSuffix(ShortLinkCreateReqDTO requestParam) {
+        int customGenerateCount = 0;
+        String shortUri = null;
+        while (true) {
+            // 最大重试次数为10
+            if (customGenerateCount >= 10) {
+                throw new ClientException(SERVICE_TIMEOUT_ERROR);
+            }
+            // 加上时间戳来进行哈希
+            String originUrlWithTime = requestParam.getOriginUrl() + UUID.fastUUID();
+            shortUri = HashUtil.hashToBase62(originUrlWithTime);
+
+            // 使用布隆过滤器进行重复判断
+            if (!shortUriBloomFilter.contains(requestParam.getDomain() + "/" + shortUri)) {
+                break;
+            }
+            customGenerateCount++;
+        }
+        return shortUri;
+    }
+
+
+    /**
+     * 短链接状态查询
+     */
+    private void shortLinkStats(String fullShortUrl, ServletRequest request, ServletResponse response) {
+        Cookie[] cookies = ((HttpServletRequest) request).getCookies();
+        AtomicBoolean uvFirstFlag = new AtomicBoolean();
+
+        // uv统计
+        try {
+            // 声明线程任务
+            Runnable addResponseCookieTask = () -> {
+                // Runnable的run方法中的实现 -> 生成uv的标识，并将其放入到cookie中
+                String uv = UUID.fastUUID().toString();
+                Cookie uvCookie = new Cookie("uv", uv);
+                uvCookie.setMaxAge(60 * 60 * 24 * 30);      // 有效期一个月
+                uvCookie.setPath(StrUtil.sub(fullShortUrl, fullShortUrl.indexOf("/"), fullShortUrl.length()));     // 设置Cookie的作用域
+                ((HttpServletResponse) response).addCookie(uvCookie);
+                uvFirstFlag.set(Boolean.TRUE);
+                stringRedisTemplate.opsForSet().add("shortlink:stats:uv" + fullShortUrl, uv);
+            };
+
+            // 如果请求中带有cookie那就不设置
+            if (ArrayUtil.isNotEmpty(cookies)) {
+                Arrays.stream(cookies)
+                        .filter(each -> Objects.equals(each.getName(), "uv"))
+                        .findFirst()
+                        .map(Cookie::getValue)
+                        .ifPresentOrElse(each -> {
+                            Long uvAdded = stringRedisTemplate.opsForSet().add("shortlink:stats:uv:" + fullShortUrl, each);
+                            uvFirstFlag.set(uvAdded != null && uvAdded > 0L);
+                        }, addResponseCookieTask);
+            } else {
+                // 第一次访问
+                addResponseCookieTask.run();
+            }
+
+            // uip记录
+            String remoteAddr = request.getRemoteAddr();
+            Long uipAdded = stringRedisTemplate.opsForSet().add("short-link:stats:uip" + fullShortUrl, remoteAddr);
+            boolean uipFirstFlag = uipAdded != null && uipAdded > 0;
+
+
+            int hour = DateUtil.hour(new Date(), true);
+            Week week = DateUtil.dayOfWeekEnum(new Date());
+            int weekValue = week.getValue();
+            LinkAccessStatsDO linkAccessStatsDO = LinkAccessStatsDO.builder()
+                    .pv(1)
+                    .uv(uvFirstFlag.get() ? 1 : 0)
+                    .uip(uipFirstFlag ? 1 : 0)
+                    .hour(hour)
+                    .weekday(weekValue)
+                    .fullShortUrl(fullShortUrl)
+                    .date(new Date())
+                    .build();
+            // 更新pv
+            linkAccessStatsMapper.shortLinkStats(linkAccessStatsDO);
+        } catch (Throwable ex) {
+            log.error("短链接访问异常" + ex.getMessage());
         }
     }
 }

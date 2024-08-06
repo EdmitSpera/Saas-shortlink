@@ -1,7 +1,5 @@
 package com.nageoffer.shortlink.project.controller;
 
-import cn.hutool.http.server.HttpServerRequest;
-import cn.hutool.http.server.HttpServerResponse;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.nageoffer.shortlink.project.common.convention.result.Result;
 import com.nageoffer.shortlink.project.common.convention.result.Results;
@@ -25,10 +23,6 @@ public class ShortlinkController {
 
     private final ShortlinkService shortlinkService;
 
-    @GetMapping("/{short-uri}")
-    public void restoreUrl(@PathVariable("short-uri")String shortUri, ServletRequest request, ServletResponse response) throws IOException {
-        shortlinkService.restoreUrl(shortUri,request,response);
-    }
     /**
      * 新增短链
      * @param requestParam 请求参数，包含创建短链所需的信息
@@ -69,5 +63,17 @@ public class ShortlinkController {
     public Result<Void> deleteShortLink(@RequestBody ShortLinkDeleteReqDTO requestParam){
         shortlinkService.deleteShortLink(requestParam);
         return Results.success();
+    }
+
+    /**
+     * 短链接跳转
+     * @param shortUri
+     * @param request
+     * @param response
+     * @throws IOException
+     */
+    @GetMapping("/{short-uri}")
+    public void restoreUrl(@PathVariable("short-uri")String shortUri, ServletRequest request, ServletResponse response) throws IOException {
+        shortlinkService.restoreUrl(shortUri,request,response);
     }
 }

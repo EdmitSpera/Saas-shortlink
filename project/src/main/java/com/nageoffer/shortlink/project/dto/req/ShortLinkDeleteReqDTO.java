@@ -2,8 +2,6 @@ package com.nageoffer.shortlink.project.dto.req;
 
 import lombok.Data;
 
-import java.util.Date;
-
 @Data
 public class ShortLinkDeleteReqDTO {
     /**

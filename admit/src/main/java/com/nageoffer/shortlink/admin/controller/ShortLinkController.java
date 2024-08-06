@@ -1,19 +1,19 @@
 package com.nageoffer.shortlink.admin.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.nageoffer.shortlink.admin.common.convention.result.Result;
 import com.nageoffer.shortlink.admin.common.convention.result.Results;
 import com.nageoffer.shortlink.admin.remote.dto.ShortLinkActualRemoteService;
-import com.nageoffer.shortlink.admin.remote.dto.ShortLinkRemoteService;
 import com.nageoffer.shortlink.admin.remote.dto.req.ShortLinkCreateReqDTO;
+import com.nageoffer.shortlink.admin.remote.dto.req.ShortLinkDeleteReqDTO;
 import com.nageoffer.shortlink.admin.remote.dto.req.ShortLinkPageReqDTO;
+import com.nageoffer.shortlink.admin.remote.dto.req.ShortLinkUpdateReqDTO;
 import com.nageoffer.shortlink.admin.remote.dto.resp.ShortLinkCreateRespDTO;
 import com.nageoffer.shortlink.admin.remote.dto.resp.ShortLinkPageRespDTO;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
 
 @RestController
 @RequiredArgsConstructor
@@ -37,7 +37,33 @@ public class ShortLinkController {
      * @return 包含分页查询结果的响应对象
      */
     @GetMapping("/api/short-link/admin/v1/page")
-    public Result<IPage<ShortLinkPageRespDTO>> pageShortLink(@RequestBody ShortLinkPageReqDTO requestParam){
-        return shortLinkActualRemoteService.pageShortLink(requestParam);
+    public Result<Page<ShortLinkPageRespDTO>> pageShortLink(@RequestBody ShortLinkPageReqDTO requestParam){
+        return shortLinkActualRemoteService.pageShortLink(
+                requestParam.getGid(),
+                requestParam.getOrderTag(),
+                requestParam.getCurrent(),
+                requestParam.getSize());
+    }
+
+    /**
+     * 修改短链
+     * @param requestParam
+     * @return
+     */
+    @PutMapping("/api/short-link/admin/v1/update")
+    public Result<Void> updateShortLink(@RequestBody ShortLinkUpdateReqDTO requestParam){
+        shortLinkActualRemoteService.updateShortLink(requestParam);
+        return Results.success();
+    }
+
+    /**
+     * 删除短链
+     * @param requestParam
+     * @return
+     */
+    @PostMapping("/api/short-link/admin/v1/delete")
+    public Result<Void> deleteShortLink(@RequestBody ShortLinkDeleteReqDTO requestParam){
+        shortLinkActualRemoteService.deleteShortLink(requestParam);
+        return Results.success();
     }
 }
