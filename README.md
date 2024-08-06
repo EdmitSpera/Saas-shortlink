@@ -1,8 +1,8 @@
 # 短链接管理系统
 ### 生成短链
-![processing.png](processing.png)
+![processing.png](ReadMeImag/processing.png)
 
-![processing_.png](processing_.png)
+![processing_.png](ReadMeImag/processing_.png)
 ### 修改短链
 ![img_8.png](ReadMeImag/img_8.png)
 ### 短链跳转
