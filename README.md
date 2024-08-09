@@ -7,6 +7,15 @@
 ![img_8.png](ReadMeImag/img_8.png)
 ### 短链跳转
 ![img_9.png](ReadMeImag/img_9.png)
+### 短链服务信息统计幂等设计
+![img.png](ReadMeImag/img_11.png)
+需要解决两个问题
+- 基础幂等功能实现
+- 消费过程异常问题:如果消息消费异常时，极端情况下(断电、集群宕机)还没有删除redis中的幂等标识，造成异常判断。
+基础幂等
+![img_1.png](ReadMeImag/img_12.png)
+解决消费异常
+![img_2.png](ReadMeImag/img_13.png)
 ### 服务调用
 ![img_10.png](ReadMeImag/img_10.png)
 ## 核心服务接口演示
